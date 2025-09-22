@@ -1,0 +1,12 @@
+aboba
+/.idea
+/.vscode
+
+*.h5
+
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.env
+venv

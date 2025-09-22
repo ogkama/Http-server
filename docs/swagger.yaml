@@ -1,0 +1,186 @@
+basePath: /
+definitions:
+  types.GetTaskResultHandlerResponse:
+    properties:
+      result:
+        type: string
+    type: object
+  types.GetTaskStatusHandlerResponse:
+    properties:
+      status:
+        type: string
+    type: object
+  types.Message:
+    properties:
+      message:
+        type: string
+    type: object
+  types.PostUserHandlerRequest:
+    properties:
+      login:
+        type: string
+      password:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: This is a sample server.
+  title: My API
+  version: "1.0"
+paths:
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and start a session
+      parameters:
+      - description: User credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/types.PostUserHandlerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successful login
+          schema:
+            $ref: '#/definitions/types.Message'
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: User login
+      tags:
+      - user
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user account
+      parameters:
+      - description: User credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/types.PostUserHandlerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User registered successfully
+          schema:
+            $ref: '#/definitions/types.Message'
+        "400":
+          description: Bad request
+          schema:
+            type: string
+      summary: Register a new user
+      tags:
+      - user
+  /task/{task_id}/result:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve the result of a completed task by its ID
+      parameters:
+      - description: Session ID
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Task ID
+        in: path
+        name: task_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Task result received successfully
+          schema:
+            $ref: '#/definitions/types.GetTaskResultHandlerResponse'
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "404":
+          description: Task not found
+          schema:
+            type: string
+      summary: Get task result
+      tags:
+      - task
+  /task/{task_id}/status:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve the status of a task by its ID
+      parameters:
+      - description: Session ID
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Task ID
+        in: path
+        name: task_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Task status received successfully
+          schema:
+            $ref: '#/definitions/types.GetTaskStatusHandlerResponse'
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "404":
+          description: Task not found
+          schema:
+            type: string
+      summary: Get task status
+      tags:
+      - task
+  /task/upload:
+    post:
+      consumes:
+      - application/json
+      description: Submit a new task for processing
+      parameters:
+      - description: Session ID
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Image file to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Task ID returned successfully
+          schema:
+            type: string
+        "400":
+          description: Bad request
+          schema:
+            type: string
+      summary: Create a new task with generated task_id
+      tags:
+      - task
+swagger: "2.0"

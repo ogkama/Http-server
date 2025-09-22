@@ -1,0 +1,103 @@
+services:
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mydatabase
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./cmd/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d mydatabase"]
+      interval: 5s
+      timeout: 30s
+      retries: 3
+
+  redis:
+    image: redis:latest
+    command: redis-server --requirepass password
+    environment:
+      REDIS_PASSWORD: password
+    ports:
+      - "6379:6379"
+
+  app:
+    build:
+      context: .
+      dockerfile: cmd/app/Dockerfile
+    environment:
+      REDIS_ADDR: redis:6379
+      REDIS_PASSWORD: password
+      REDIS_DB: 0
+      DB_CONN_STR: "postgres://user:password@db:5432/mydatabase?sslmode=disable"
+    ports: 
+      - "8080:8080"
+    depends_on:
+      broker:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      db:
+        condition: service_healthy
+
+  consumer:
+    build:
+      context: .
+      dockerfile: cmd/consumer/Dockerfile
+    environment:
+      DB_CONN_STR: "postgres://user:password@db:5432/mydatabase?sslmode=disable"
+    ports:
+      - "2112:2112"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      broker:
+        condition: service_healthy
+      app:
+        condition: service_started
+
+  broker:
+    image: "rabbitmq:3-management"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 30s
+      retries: 3
+
+  python-worker:
+    build:
+      context: .
+      dockerfile: cmd/worker/Dockerfile
+    image: python-worker:latest
+    environment:
+      BASE_URL: http://app:8080
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      consumer:
+        condition: service_started
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
